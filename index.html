@@ -36,11 +36,11 @@
 
       datos.forEach(producto => {
         const fila = document.createElement("tr");
-        fila.innerHTML = `
-          <td>${producto.Descripcion || ''}</td>
-          <td>${producto["Codigo Barra"] || ''}</td>
-          <td>$${parseFloat(producto.Precio || 0).toFixed(2)}</td>
-        `;
+       fila.innerHTML = `
+  <td>${producto.Concepto || ''}</td>
+  <td>${producto["Codigo Barra"] || ''}</td>
+  <td>$${parseFloat(producto["Precio Publico"] || 0).toFixed(2)}</td>
+`;
         tableBody.appendChild(fila);
       });
     }
