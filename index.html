@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta de Productos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tableBody = document.getElementById("tabla-productos");
+
+    async function cargarProductos() {
+      const productosRef = collection(db, "productos");
+      const querySnapshot = await getDocs(productosRef);
+
+      const datos = [];
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        datos.push(data);
+      });
+
+      datos.sort((a, b) => (a.Descripcion || "").localeCompare(b.Descripcion || ""));
+
+      datos.forEach(producto => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${producto.Descripcion || ''}</td>
+          <td>${producto["Codigo Barra"] || ''}</td>
+          <td>$${parseFloat(producto.Precio || 0).toFixed(2)}</td>
+        `;
+        tableBody.appendChild(fila);
+      });
+    }
+
+    cargarProductos();
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #00416A, #E4E5E6);
+      padding: 20px;
+      margin: 0;
+      color: white;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      color: black;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #00416A;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .contenedor {
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Consulta de Productos</h1>
+  <input type="text" id="buscador" placeholder="Buscar por descripción o código..." onkeyup="filtrarTabla()">
+  <div class="contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>DESCRIPCIÓN</th>
+          <th>CÓDIGO</th>
+          <th>PRECIO</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-productos">
+        <!-- Productos serán insertados aquí -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function filtrarTabla() {
+      const input = document.getElementById("buscador");
+      const filtro = input.value.toLowerCase();
+      const filas = document.getElementById("tabla-productos").getElementsByTagName("tr");
+
+      for (let i = 0; i < filas.length; i++) {
+        const celdas = filas[i].getElementsByTagName("td");
+        let coincide = false;
+
+        for (let j = 0; j < celdas.length; j++) {
+          const texto = celdas[j].textContent.toLowerCase();
+          if (texto.includes(filtro)) {
+            coincide = true;
+            break;
+          }
+        }
+
+        filas[i].style.display = coincide ? "" : "none";
+      }
+    }
+  </script>
+</body>
+</html>
