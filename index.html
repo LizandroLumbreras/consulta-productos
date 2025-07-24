@@ -21,29 +21,44 @@
     const db = getFirestore(app);
 
     const tableBody = document.getElementById("tabla-productos");
+    const inputBuscador = document.getElementById("buscador");
+
+    let productos = [];
 
     async function cargarProductos() {
       const productosRef = collection(db, "productos");
-      const querySnapshot = await getDocs(productosRef);
+      const snapshot = await getDocs(productosRef);
 
-      const datos = [];
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        datos.push(data);
+      productos = [];
+      snapshot.forEach(doc => {
+        productos.push(doc.data());
       });
 
-      datos.sort((a, b) => (a.Descripcion || "").localeCompare(b.Descripcion || ""));
+      productos.sort((a, b) => (a.Concepto || "").localeCompare(b.Concepto || ""));
+      mostrarProductos(productos.slice(0, 8)); // solo 8 al inicio
+    }
 
-      datos.forEach(producto => {
+    function mostrarProductos(lista) {
+      tableBody.innerHTML = "";
+      lista.forEach(producto => {
         const fila = document.createElement("tr");
-       fila.innerHTML = `
-  <td>${producto.Concepto || ''}</td>
-  <td>${producto["Codigo Barra"] || ''}</td>
-  <td>$${parseFloat(producto["Precio Publico"] || 0).toFixed(2)}</td>
-`;
+        fila.innerHTML = `
+          <td>${producto.Concepto || ''}</td>
+          <td>${producto["Codigo Barra"] || ''}</td>
+          <td>$${parseFloat(producto["Precio Publico"] || 0).toFixed(2)}</td>
+        `;
         tableBody.appendChild(fila);
       });
     }
+
+    inputBuscador.addEventListener("input", () => {
+      const texto = inputBuscador.value.toLowerCase();
+      const filtrados = productos.filter(p =>
+        (p.Concepto || "").toLowerCase().includes(texto) ||
+        (p["Codigo Barra"] || "").toLowerCase().includes(texto)
+      );
+      mostrarProductos(filtrados.slice(0, 8));
+    });
 
     cargarProductos();
   </script>
@@ -65,16 +80,23 @@
     input {
       width: 100%;
       padding: 12px;
-      margin-bottom: 20px;
       font-size: 16px;
+      margin-bottom: 20px;
       border-radius: 6px;
       border: none;
+    }
+
+    .contenedor-tabla {
+      max-height: 400px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
       color: black;
     }
 
@@ -85,23 +107,21 @@
     }
 
     th {
-      background: #00416A;
+      background-color: #00416A;
       color: white;
+      position: sticky;
+      top: 0;
     }
 
     tr:hover {
-      background-color: #f1f1f1;
-    }
-
-    .contenedor {
-      overflow-x: auto;
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
   <h1>Consulta de Productos</h1>
-  <input type="text" id="buscador" placeholder="Buscar por descripción o código..." onkeyup="filtrarTabla()">
-  <div class="contenedor">
+  <input type="text" id="buscador" placeholder="Buscar por descripción o código...">
+  <div class="contenedor-tabla">
     <table>
       <thead>
         <tr>
@@ -111,32 +131,9 @@
         </tr>
       </thead>
       <tbody id="tabla-productos">
-        <!-- Productos serán insertados aquí -->
+        <!-- Se insertan productos aquí -->
       </tbody>
     </table>
   </div>
-
-  <script>
-    function filtrarTabla() {
-      const input = document.getElementById("buscador");
-      const filtro = input.value.toLowerCase();
-      const filas = document.getElementById("tabla-productos").getElementsByTagName("tr");
-
-      for (let i = 0; i < filas.length; i++) {
-        const celdas = filas[i].getElementsByTagName("td");
-        let coincide = false;
-
-        for (let j = 0; j < celdas.length; j++) {
-          const texto = celdas[j].textContent.toLowerCase();
-          if (texto.includes(filtro)) {
-            coincide = true;
-            break;
-          }
-        }
-
-        filas[i].style.display = coincide ? "" : "none";
-      }
-    }
-  </script>
 </body>
 </html>
