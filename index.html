@@ -4,118 +4,123 @@
   <meta charset="UTF-8">
   <title>Consulta de Productos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getFirestore, collection, getDocs, query, where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // --- Firebase ---
     const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.firebasestorage.app",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-};
-
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // --- UI refs ---
     const tableBody = document.getElementById("tabla-productos");
     const inputBuscador = document.getElementById("buscador");
 
     let productos = [];
 
+    // Helper para leer campos con nombres viejos/nuevos
+    const getCampo = (obj, ...nombres) => {
+      for (const n of nombres) {
+        if (obj[n] !== undefined && obj[n] !== null) return obj[n];
+      }
+      return "";
+    };
+
     async function cargarProductos() {
-      const productosRef = collection(db, "productos");
-      const snapshot = await getDocs(productosRef);
+      try {
+        const productosRef = collection(db, "productos");
+        // Solo activos = true
+        const q = query(productosRef, where("activo", "==", true));
+        const snapshot = await getDocs(q);
 
-      productos = [];
-      snapshot.forEach(doc => {
-        productos.push(doc.data());
-      });
+        productos = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          // Normalizamos los campos que usamos
+          productos.push({
+            concepto: getCampo(data, "concepto", "Concepto"),
+            codigoBarra: getCampo(data, "codigoBarra", "Codigo Barra"),
+            precioPublico: Number(getCampo(data, "precioPublico", "Precio Publico") || 0)
+          });
+        });
 
-      productos.sort((a, b) => (a.Concepto || "").localeCompare(b.Concepto || ""));
-      mostrarProductos(productos.slice(0, 8)); // solo 8 al inicio
+        // Orden por concepto
+        productos.sort((a, b) => (a.concepto || "").localeCompare(b.concepto || ""));
+        mostrarProductos(productos.slice(0, 8)); // solo 8 al inicio
+      } catch (e) {
+        console.error(e);
+        tableBody.innerHTML = `<tr><td colspan="3">Error cargando productos.</td></tr>`;
+      }
+    }
+
+    function formateaPrecio(n) {
+      const num = Number(n) || 0;
+      try {
+        return num.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+      } catch {
+        return `$${num.toFixed(2)}`;
+      }
     }
 
     function mostrarProductos(lista) {
       tableBody.innerHTML = "";
-      lista.forEach(producto => {
-        const fila = document.createElement("tr");
-        fila.innerHTML = `
-          <td>${producto.Concepto || ''}</td>
-          <td>${producto["Codigo Barra"] || ''}</td>
-          <td>$${parseFloat(producto["Precio Publico"] || 0).toFixed(2)}</td>
+      if (!lista.length) {
+        tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center">Sin resultados</td></tr>`;
+        return;
+      }
+      for (const p of lista) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.concepto}</td>
+          <td>${p.codigoBarra}</td>
+          <td>${formateaPrecio(p.precioPublico)}</td>
         `;
-        tableBody.appendChild(fila);
-      });
+        tableBody.appendChild(tr);
+      }
     }
 
     inputBuscador.addEventListener("input", () => {
-      const texto = inputBuscador.value.toLowerCase();
+      const texto = inputBuscador.value.trim().toLowerCase();
       const filtrados = productos.filter(p =>
-        (p.Concepto || "").toLowerCase().includes(texto) ||
-        (p["Codigo Barra"] || "").toLowerCase().includes(texto)
+        (p.concepto || "").toLowerCase().includes(texto) ||
+        (p.codigoBarra || "").toLowerCase().includes(texto)
       );
       mostrarProductos(filtrados.slice(0, 8));
     });
 
     cargarProductos();
   </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(to right, #00416A, #E4E5E6);
-      padding: 20px;
-      margin: 0;
-      color: white;
-      min-height: 100vh;
+      padding: 20px; margin: 0; color: white; min-height: 100vh;
     }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
+    h1 { text-align: center; margin-bottom: 20px; }
     input {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-bottom: 20px;
-      border-radius: 6px;
-      border: none;
+      width: 100%; padding: 12px; font-size: 16px; margin-bottom: 20px;
+      border-radius: 6px; border: none;
     }
-
     .contenedor-tabla {
-      max-height: 400px;
-      overflow-y: auto;
-      background: white;
-      border-radius: 8px;
+      max-height: 400px; overflow-y: auto; background: white; border-radius: 8px;
       box-shadow: 0 0 8px rgba(0,0,0,0.3);
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      color: black;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #00416A;
-      color: white;
-      position: sticky;
-      top: 0;
-    }
-
-    tr:hover {
-      background-color: #f0f0f0;
-    }
+    table { width: 100%; border-collapse: collapse; color: black; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background-color: #00416A; color: white; position: sticky; top: 0; }
+    tr:hover { background-color: #f0f0f0; }
   </style>
 </head>
 <body>
@@ -130,9 +135,7 @@
           <th>PRECIO</th>
         </tr>
       </thead>
-      <tbody id="tabla-productos">
-        <!-- Se insertan productos aquí -->
-      </tbody>
+      <tbody id="tabla-productos"></tbody>
     </table>
   </div>
 </body>
